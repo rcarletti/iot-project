@@ -1,0 +1,15 @@
+{
+  "domain": "rollebit",
+  "name": "Rollebit",
+  "documentation": "https://www.home-assistant.io/components/fitbit",
+  "requirements": [
+    "CoAPthon3"
+  ],
+  "dependencies": [
+    "configurator",
+    "http"
+  ],
+  "codeowners": [
+    "@rcarletti"
+  ]
+}
