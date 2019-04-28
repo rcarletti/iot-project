@@ -1,9 +1,11 @@
 {
-  "domain": "rollebit",
-  "name": "Rollebit",
+  "domain": "CoAPbit",
+  "name": "CoAPbit",
   "documentation": "https://www.home-assistant.io/components/fitbit",
   "requirements": [
-    "CoAPthon3"
+    "CoAPthon3",
+    "beautifulsoup4",
+    "requests"
   ],
   "dependencies": [
     "configurator",
