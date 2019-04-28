@@ -66,24 +66,24 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 })
 
-global dev
 
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
     """Set up the CoAPbit sensor."""
-    global dev 
+    dev = [] 
     resource_addr_list = []
 
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
     print(*resource_addr_list)
+    
     # create a coap client for each node
     for addr in resource_addr_list:
         coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
 
     # create entity (one entity for each measurement)
-    dev = CoAPbitSensor(coap_client)
+    dev.append(CoAPbitSensor(coap_client))
 
-    async_add_entities([dev])
+    async_add_entities(dev, True)
     return True
 
 
@@ -128,9 +128,7 @@ class CoAPbitSensor(Entity):
 
     def client_callback_observe(self, response): 
         if response is not None:
-            pay = response.payload
-            msg = json.loads(pay)
-            print(msg["e"]["v"])
+            msg = json.loads(response.payload)
             self._state = msg["e"]["v"]
 
     
