@@ -26,6 +26,8 @@ from homeassistant.helpers.icon import icon_for_battery_level
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.json import load_json, save_json
 
+import json
+
 
 _CONFIGURING = {}
 _LOGGER = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ async def async_setup_platform(hass, config, async_add_entities,
     for addr in resource_addr_list:
         coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
 
-    #istanzio l'entità 
+    # create entity (one entity for each measurement)
     dev = CoAPbitSensor(coap_client)
 
     async_add_entities([dev])
@@ -126,7 +128,10 @@ class CoAPbitSensor(Entity):
 
     def client_callback_observe(self, response): 
         if response is not None:
-            self._state = response.payload
+            pay = response.payload
+            msg = json.loads(pay)
+            print(msg["e"]["v"])
+            self._state = msg["e"]["v"]
 
     
 
