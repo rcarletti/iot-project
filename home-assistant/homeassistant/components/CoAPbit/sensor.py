@@ -41,17 +41,18 @@ DEFAULT_BR_URI = "http://[aaaa::c30c:0:0:1]/.well-known"
 CONF_COAP_PORT = 'port'
 DEFAULT_COAP_PORT = 5683
 
-
-
-CoAPBIT_DEFAULT_RESOURCES = ['activities/steps']
+CONF_MONITORED_RESOURCES = 'monitored_resources'
+DEFAULT_MONITORED_RESOURCES = ['activities/steps',
+                             'activities/calories',
+                             'devices/battery']
 
 SCAN_INTERVAL = datetime.timedelta(seconds=1)
 
 CoAPBIT_RESOURCES_LIST = {
-    'activities/steps': ['steps', 'steps', 'walk'],
+    'activities/steps': ['steps', 'steps', 'mdi:shoe-print'],
+    'activities/calories': ['calories', 'cal', 'mdi:fire'],
+    'devices/battery': ['Battery', None, None],
 }
-
-ICON = 'mdi:chart-line'
 
 CoAPBIT_MEASUREMENTS = {
     'metric': {
@@ -59,11 +60,13 @@ CoAPBIT_MEASUREMENTS = {
     }
 }
 
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_SERVER_URI, default=DEFAULT_SERVER_URI): cv.string,
     vol.Optional(CONF_BR_URI, default=DEFAULT_BR_URI): cv.string,
-    vol.Optional(CONF_COAP_PORT, default=DEFAULT_COAP_PORT): int
-
+    vol.Optional(CONF_COAP_PORT, default=DEFAULT_COAP_PORT): int,
+    vol.Optional(CONF_MONITORED_RESOURCES, default=DEFAULT_MONITORED_RESOURCES):
+        vol.All(cv.ensure_list, [vol.In(CoAPBIT_RESOURCES_LIST)])
 })
 
 
@@ -74,14 +77,13 @@ async def async_setup_platform(hass, config, async_add_entities,
     resource_addr_list = []
 
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
-    print(*resource_addr_list)
     
     # create a coap client for each node
     for addr in resource_addr_list:
-        coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
-
-    # create entity (one entity for each measurement)
-    dev.append(CoAPbitSensor(coap_client))
+        #for each client create one entity for each sensor
+        for resource in config.get(CONF_MONITORED_RESOURCES):
+            coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
+            dev.append(CoAPbitSensor(coap_client, resource))
 
     async_add_entities(dev, True)
     return True
@@ -90,14 +92,17 @@ async def async_setup_platform(hass, config, async_add_entities,
 class CoAPbitSensor(Entity):
     """Implementation of a CoAPbit sensor."""
 
-    def __init__(self, client):
+    def __init__(self, client, resource_type):
         """Initialize the CoAPbit """
-        self.client = client
+        self._client = client
         self._state = None
-        self._name = 'Steps'
-        self._unit_of_measurement = 'steps'
+        self._resource_type = resource_type
+        self._name = CoAPBIT_RESOURCES_LIST[self._resource_type][0]
+        self._unit_of_measurement = CoAPBIT_RESOURCES_LIST[self._resource_type][1]
+        self._icon = CoAPBIT_RESOURCES_LIST[self._resource_type][2]
+        self._msg = {}
 
-        self.client.observe(CoAPBIT_RESOURCES_LIST['activities/steps'][0], self.client_callback_observe)
+        self._client.observe(self._name, self.client_callback_observe)
         
     @property
     def name(self):
@@ -118,7 +123,7 @@ class CoAPbitSensor(Entity):
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
-        return ICON
+        return self._icon
 
     @property
     def device_state_attributes(self):
@@ -128,15 +133,20 @@ class CoAPbitSensor(Entity):
 
     def client_callback_observe(self, response): 
         if response is not None:
-            msg = json.loads(response.payload)
-            self._state = msg["e"]["v"]
+            try:
+                self._msg = json.loads(response.payload)
+            except:
+                print(response.payload)
+                return
+            try:
+                self._state = self._msg["e"]["v"]
+            except KeyError:
+                pass
 
-    
 
     def update(self):
         """Get the latest data from the Fitbit API and update the states."""
         #response = self.client.get(self.path)
-        
 
 
 def retrieve_nodes(br_uri, resource_addr_list):
