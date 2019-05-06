@@ -6,6 +6,7 @@ import time
 import getopt
 import socket
 import sys
+import pint 
 
 from coapthon.client.helperclient import HelperClient
 from coapthon.utils import parse_uri
@@ -45,16 +46,18 @@ CONF_MONITORED_RESOURCES = 'monitored_resources'
 DEFAULT_MONITORED_RESOURCES = ['activities/steps',
                              'activities/calories',
                              'devices/battery',
-                             'activities/heart']
+                             'activities/heart',
+                             'activities/distance']
 
 SCAN_INTERVAL = datetime.timedelta(seconds=1)
 
 # [name, unit of measurement, icon, default state]
 CoAPBIT_RESOURCES_LIST = {
-    'activities/steps': ['Steps', 'steps', 'mdi:shoe-print', '0'],
-    'activities/calories': ['Calories', 'cal', 'mdi:fire', '0'],
+    'activities/steps': ['Steps', 'steps', 'mdi:shoe-print', 0],
+    'activities/calories': ['Calories', 'cal', 'mdi:fire', 0],
     'devices/battery': ['Battery', '%', None, '100'],
-    'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', '0'],
+    'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
+    'activities/distance': ['Distance', '', 'mdi:map-marker', 0],
 }
 
 CoAPBIT_MEASUREMENTS = {
@@ -71,6 +74,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_MONITORED_RESOURCES, default=DEFAULT_MONITORED_RESOURCES):
         vol.All(cv.ensure_list, [vol.In(CoAPBIT_RESOURCES_LIST)])
 })
+
+ureg = UnitRegistry()
+ureg.load_definitions('unit_def.txt') 
 
 
 async def async_setup_platform(hass, config, async_add_entities,
