@@ -1,0 +1,2 @@
+millicalories = calories / 1000 = millical = mcal
+calories = [calories] = cal 

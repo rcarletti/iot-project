@@ -6,10 +6,12 @@ import time
 import getopt
 import socket
 import sys
-import pint 
+import pint
+
 
 from coapthon.client.helperclient import HelperClient
 from coapthon.utils import parse_uri
+from pint import UnitRegistry
 
 from bs4 import BeautifulSoup
 
@@ -57,7 +59,7 @@ CoAPBIT_RESOURCES_LIST = {
     'activities/calories': ['Calories', 'cal', 'mdi:fire', 0],
     'devices/battery': ['Battery', '%', None, '100'],
     'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
-    'activities/distance': ['Distance', '', 'mdi:map-marker', 0],
+    'activities/distance': ['Distance', 'km', 'mdi:map-marker', 0],
 }
 
 CoAPBIT_MEASUREMENTS = {
@@ -75,24 +77,22 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.All(cv.ensure_list, [vol.In(CoAPBIT_RESOURCES_LIST)])
 })
 
-ureg = UnitRegistry()
-ureg.load_definitions('unit_def.txt') 
-
-
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
     """Set up the CoAPbit sensor."""
-    dev = [] 
+
+    ureg = UnitRegistry()
+    ureg.load_definitions('/home/rossella/home-assistant/homeassistant/components/CoAPbit/unit_def.txt')
+    dev = []
     resource_addr_list = []
 
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
-    
-    # create a coap client for each node
+
     for addr in resource_addr_list:
         #for each client create one entity for each sensor
         for resource in config.get(CONF_MONITORED_RESOURCES):
             coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
-            dev.append(CoAPbitSensor(coap_client, resource))
+            dev.append(CoAPbitSensor(coap_client, resource, ureg))
 
     async_add_entities(dev, True)
     return True
@@ -101,7 +101,7 @@ async def async_setup_platform(hass, config, async_add_entities,
 class CoAPbitSensor(Entity):
     """Implementation of a CoAPbit sensor."""
 
-    def __init__(self, client, resource_type):
+    def __init__(self, client, resource_type, ureg):
         """Initialize the CoAPbit """
         self._client = client
         self._resource_type = resource_type
@@ -110,17 +110,11 @@ class CoAPbitSensor(Entity):
         self._unit_of_measurement = CoAPBIT_RESOURCES_LIST[self._resource_type][1]
         self._msg = {}
         self._last_response = None
+        self._icon = CoAPBIT_RESOURCES_LIST[self._resource_type][2]
+        self._ureg = ureg
 
-        if self._name != 'devices/battery':
-            self._icon = CoAPBIT_RESOURCES_LIST[self._resource_type][2]
-        else:
-            if self._state == 100:
-                self._icon = 'mdi:battery'
-            else:
-                self._icon = 'mdi:battery-' + self._state
 
         self._client.observe(self._name, self.client_callback_observe)
-
 
 
     @property
@@ -150,7 +144,7 @@ class CoAPbitSensor(Entity):
         return {}
 
 
-    def client_callback_observe(self, response): 
+    def client_callback_observe(self, response):
         if response is not None:
             try:
                 self._msg = json.loads(response.payload)
@@ -159,15 +153,29 @@ class CoAPbitSensor(Entity):
                 print(response.payload)
                 return
             try:
-                self._state = int(self._msg["e"]["v"])
-                print(self._msg)
+                # check the unit of measurement
+                unit = self._msg["e"]["u"]
+                if unit == self._unit_of_measurement:
+                    raw_state = self._msg["e"]["v"]
+                else:
+                    # convert to the desired u.of m.
+                    data = self._msg["e"]["v"] * self._ureg.parse_expression(unit)
+                    raw_state = data.to(self._ureg.parse_expression(self._unit_of_measurement)).magnitude
+
+                if self._name == 'Distance':
+                    self._state = format(float(raw_state), '.2f')
+                else:
+                    self._state = format(float(raw_state), '.0f')
+
+
             except KeyError:
                 pass
 
 
+
+
     def update(self):
         """Get the latest data from the Fitbit API and update the states."""
-        #response = self.client.get(self.path)
 
 
 def retrieve_nodes(br_uri, resource_addr_list):
@@ -180,14 +188,14 @@ def retrieve_nodes(br_uri, resource_addr_list):
 
 
         for string in addr_list.stripped_strings:
-            # split single addresses    
+            # split single addresses
             addrs = string.split('\n')
             for addr in addrs:
                 tmp = addr.split('/')
                 resource_addr_list.append(tmp[0])
 
 
-        
+
 
 
 
