@@ -49,7 +49,8 @@ DEFAULT_MONITORED_RESOURCES = ['activities/steps',
                              'activities/calories',
                              'devices/battery',
                              'activities/heart',
-                             'activities/distance'
+                             'activities/distance',
+                             'calendar'
                              ]
 
 SCAN_INTERVAL = datetime.timedelta(seconds=1)
@@ -61,6 +62,7 @@ CoAPBIT_RESOURCES_LIST = {
     'devices/battery': ['Battery', '%', None, '100'],
     'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
     'activities/distance': ['Distance', 'km', 'mdi:map-marker', 0],
+    'calendar': ['Calendar' , None, 'mdi:calendar', 'calendar not set'],
 
 }
 
@@ -157,19 +159,28 @@ class CoAPbitSensor(Entity):
                 print(response.payload)
                 return
             try:
-                # check the unit of measurement
-                unit = self._msg["e"]["u"]
-                if unit == self._unit_of_measurement:
-                    raw_state = self._msg["e"]["v"]
-                else:
-                    # convert to the desired u.of m.
-                    data = self._msg["e"]["v"] * self._ureg.parse_expression(unit)
-                    raw_state = data.to(self._ureg.parse_expression(self._unit_of_measurement)).magnitude
+                if self._name is not 'Calendar':
+                    # check the unit of measurement
+                    unit = self._msg["e"]["u"]
+                    if unit == self._unit_of_measurement:
+                        raw_state = self._msg["e"]["v"]
+                    else:
+                        # convert to the desired u.of m.
+                        data = self._msg["e"]["v"] * self._ureg.parse_expression(unit)
+                        raw_state = data.to(self._ureg.parse_expression(self._unit_of_measurement)).magnitude
 
-                if self._name == 'Distance':
-                    self._state = format(float(raw_state), '.2f')
+                    if self._name == 'Distance':
+                        self._state = format(float(raw_state), '.2f')
+                    else:
+                        self._state = format(float(raw_state), '.0f')
                 else:
-                    self._state = format(float(raw_state), '.0f')
+                    sec = self._msg["sec"]
+                    mins = self._msg["min"]
+                    hour = self._msg["hour"]
+                    day = self._msg["day"]
+                    month = self._msg["month"]
+                    year = self._msg["year"]
+                    self._state = '{}/{}/{} \n {:02}:{:02}:{:02}'.format(day, month, year, hour, mins, sec)
             except KeyError:
                 pass
 
