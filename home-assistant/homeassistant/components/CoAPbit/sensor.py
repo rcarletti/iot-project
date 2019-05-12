@@ -49,7 +49,8 @@ DEFAULT_MONITORED_RESOURCES = ['activities/steps',
                              'activities/calories',
                              'devices/battery',
                              'activities/heart',
-                             'activities/distance']
+                             'activities/distance'
+                             ]
 
 SCAN_INTERVAL = datetime.timedelta(seconds=1)
 
@@ -60,6 +61,7 @@ CoAPBIT_RESOURCES_LIST = {
     'devices/battery': ['Battery', '%', None, '100'],
     'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
     'activities/distance': ['Distance', 'km', 'mdi:map-marker', 0],
+
 }
 
 CoAPBIT_MEASUREMENTS = {
@@ -89,10 +91,13 @@ async def async_setup_platform(hass, config, async_add_entities,
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
 
     for addr in resource_addr_list:
+        calendar_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
+        set_datetime(calendar_client,"Calendar")
         #for each client create one entity for each sensor
         for resource in config.get(CONF_MONITORED_RESOURCES):
             coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
             dev.append(CoAPbitSensor(coap_client, resource, ureg))
+
 
     async_add_entities(dev, True)
     return True
@@ -112,7 +117,6 @@ class CoAPbitSensor(Entity):
         self._last_response = None
         self._icon = CoAPBIT_RESOURCES_LIST[self._resource_type][2]
         self._ureg = ureg
-
 
         self._client.observe(self._name, self.client_callback_observe)
 
@@ -166,13 +170,8 @@ class CoAPbitSensor(Entity):
                     self._state = format(float(raw_state), '.2f')
                 else:
                     self._state = format(float(raw_state), '.0f')
-
-
             except KeyError:
                 pass
-
-
-
 
     def update(self):
         """Get the latest data from the Fitbit API and update the states."""
@@ -194,8 +193,23 @@ def retrieve_nodes(br_uri, resource_addr_list):
                 tmp = addr.split('/')
                 resource_addr_list.append(tmp[0])
 
+def set_datetime(client, path):
+    currentDT = datetime.datetime.now()
+    year = currentDT.year
+    month = currentDT.month
+    day = currentDT.day
+    hour = currentDT.hour
+    minute = currentDT.minute
+    second = currentDT.second
 
+    payload = "day=" + str(day) + "&" + \
+                "month=" + str(month) + '&' + \
+                "year=" + str(year) + '&' + \
+                "sec=" + str(second) + '&' + \
+                "min=" + str(minute) + '&' + \
+                "hour=" + str(hour)
 
+    response = client.post(path, payload)
 
 
 
