@@ -7,6 +7,7 @@ import getopt
 import socket
 import sys
 import pint
+import threading
 
 
 from coapthon.client.helperclient import HelperClient
@@ -35,8 +36,8 @@ import json
 _CONFIGURING = {}
 _LOGGER = logging.getLogger(__name__)
 
-CONF_SERVER_URI = 'server_uri'
-DEFAULT_SERVER_URI = "coap://[aaaa::c30c:0:0:2]:5683/steps"
+CONF_NODE_URI = 'node_uri'
+DEFAULT_NODE_URI = "aaaa::202:2:2:2"
 
 CONF_BR_URI = 'br_uri'
 DEFAULT_BR_URI = "http://[aaaa::201:1:1:1]/.well-known"
@@ -74,31 +75,32 @@ CoAPBIT_MEASUREMENTS = {
 
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_SERVER_URI, default=DEFAULT_SERVER_URI): cv.string,
+    vol.Optional(CONF_NODE_URI, default=DEFAULT_NODE_URI): cv.string,
     vol.Optional(CONF_BR_URI, default=DEFAULT_BR_URI): cv.string,
     vol.Optional(CONF_COAP_PORT, default=DEFAULT_COAP_PORT): int,
     vol.Optional(CONF_MONITORED_RESOURCES, default=DEFAULT_MONITORED_RESOURCES):
         vol.All(cv.ensure_list, [vol.In(CoAPBIT_RESOURCES_LIST)])
 })
 
+
+
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
-    """Set up the CoAPbit sensor."""
-
+    """Set up the CoAPbit platform."""
     ureg = UnitRegistry()
     ureg.load_definitions('/home/rossella/home-assistant/homeassistant/components/CoAPbit/unit_def.txt')
     dev = []
     resource_addr_list = []
-
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
 
     for addr in resource_addr_list:
-        calendar_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
-        set_datetime(calendar_client,"Calendar")
-        #for each client create one entity for each sensor
-        for resource in config.get(CONF_MONITORED_RESOURCES):
-            coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
-            dev.append(CoAPbitSensor(coap_client, resource, ureg))
+        if addr == config.get(CONF_NODE_URI):
+            calendar_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
+            set_datetime(calendar_client,"Calendar")
+            #for each client create one entity for each sensor
+            for resource in config.get(CONF_MONITORED_RESOURCES):
+                coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
+                dev.append(CoAPbitSensor(coap_client, resource, ureg))
 
 
     async_add_entities(dev, True)
@@ -119,6 +121,7 @@ class CoAPbitSensor(Entity):
         self._last_response = None
         self._icon = CoAPBIT_RESOURCES_LIST[self._resource_type][2]
         self._ureg = ureg
+        self._prev_time = datetime.datetime.now()
 
         self._client.observe(self._name, self.client_callback_observe)
 
@@ -180,29 +183,44 @@ class CoAPbitSensor(Entity):
                     day = self._msg["day"]
                     month = self._msg["month"]
                     year = self._msg["year"]
-                    self._state = '{}/{}/{} \n {:02}:{:02}:{:02}'.format(day, month, year, hour, mins, sec)
+                    self._state = '{}/{}/{} \n {:02}:{:02}'.format(day, month, year, hour, mins)
             except KeyError:
                 pass
 
     def update(self):
-        """Get the latest data from the Fitbit API and update the states."""
+        if self._name == 'Calendar':
+            now = datetime.datetime.now()
+            now_delta = datetime.timedelta(hours=now.hour,\
+                        minutes=now.minute,\
+                        seconds=now.second)
+            prev_delta = datetime.timedelta(hours=self._prev_time.hour,\
+                        minutes = self._prev_time.minute, \
+                        seconds = self._prev_time.second)
+            delta = now_delta - prev_delta
+            if(delta > datetime.timedelta(minutes = 5)):
+                self._prev_time = now
+                set_datetime(self._client, self._resource_type)
+
+
+
 
 
 def retrieve_nodes(br_uri, resource_addr_list):
-        # http-get to BR router
-        r = requests.get(br_uri)
-        html_doc = r.text
-        #retrieve nodes addresses
-        soup = BeautifulSoup(html_doc, 'html.parser')
-        addr_list = soup.find_all('pre')[1]
+    # http-get to BR router
+    r = requests.get(br_uri)
+    html_doc = r.text
+    #retrieve nodes addresses
+    soup = BeautifulSoup(html_doc, 'html.parser')
+    addr_list = soup.find_all('pre')[1]
 
 
-        for string in addr_list.stripped_strings:
-            # split single addresses
-            addrs = string.split('\n')
-            for addr in addrs:
-                tmp = addr.split('/')
-                resource_addr_list.append(tmp[0])
+    for string in addr_list.stripped_strings:
+        # split single addresses
+        addrs = string.split('\n')
+        for addr in addrs:
+            tmp = addr.split('/')
+            resource_addr_list.append(tmp[0])
+
 
 def set_datetime(client, path):
     currentDT = datetime.datetime.now()
