@@ -59,7 +59,7 @@ SCAN_INTERVAL = datetime.timedelta(seconds=1)
 # [name, unit of measurement, icon, default state]
 CoAPBIT_RESOURCES_LIST = {
     'activities/steps': ['Steps', 'steps', 'mdi:shoe-print', 0],
-    'activities/calories': ['Calories', 'cal', 'mdi:fire', 0],
+    'activities/calories': ['Calories', 'kcal', 'mdi:fire', 0],
     'devices/battery': ['Battery', '%', None, '100'],
     'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
     'activities/distance': ['Distance', 'km', 'mdi:map-marker', 0],
@@ -88,7 +88,7 @@ async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
     """Set up the CoAPbit platform."""
     ureg = UnitRegistry()
-    ureg.load_definitions('/home/rossella/home-assistant/homeassistant/components/CoAPbit/unit_def.txt')
+    #ureg.load_definitions('/home/rossella/home-assistant/homeassistant/components/CoAPbit/unit_def.txt')
     dev = []
     resource_addr_list = []
     retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
@@ -197,9 +197,10 @@ class CoAPbitSensor(Entity):
                         minutes = self._prev_time.minute, \
                         seconds = self._prev_time.second)
             delta = now_delta - prev_delta
-            if(delta > datetime.timedelta(minutes = 5)):
+            if(delta > datetime.timedelta(minutes = 1)):
                 self._prev_time = now
                 set_datetime(self._client, self._resource_type)
+                print('set time')
 
 
 
