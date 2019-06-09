@@ -1,0 +1,94 @@
+title: My Awesome Home
+resources:
+  - url: /local/plugins/lovelace-card-modder/card-modder.js?track=true
+    type: js
+  - url: /local/plugins/lovelace-card-tools/card-tools.js?track=true
+    type: js
+  - url: /local/plugins/mini-graph-card-bundle.js?v=0.3.3
+    type: module
+views:
+    # View tab title.
+  - title: Fitness
+    cards:
+        # The markdown card will render markdown text.
+      - type: markdown
+        title: Lovelace
+        content: >
+          Welcome to your **Lovelace UI**.
+
+
+      # - type: sensor
+      #   entity: sensor.steps
+      #   name: Steps
+
+      # - type: sensor
+      #   entity: sensor.calories
+      #   name: Calories
+
+      - type: gauge
+        name: Battery
+        unit: '%'
+        entity: sensor.battery
+        severity:
+           green: 60
+           yellow: 40
+           red: 20
+
+      - type: custom:card-modder
+        style:
+          background-color: "[[ sensor.heart_rate_bg_color.state ]]"
+        card:
+          type: sensor
+          entity: sensor.heart
+
+      - type: sensor
+        entity: sensor.calendar
+        name: calendar
+
+
+      - type: custom:mini-graph-card
+        entities:
+        - sensor.steps
+        line_color: blue
+        line_width: 8
+        hours_to_show: 168
+        points_per_hour: 0.04166
+        height: 200
+        width: 200
+        font_size: 100
+        font_size_header: 16
+        show:
+          graph: bar
+      - type: custom:mini-graph-card
+        entities:
+        - sensor.calories
+        line_color: '#e74c3c'
+        line_width: 8
+        hours_to_show: 168
+        points_per_hour: 0.04166
+        font_size: 100
+        font_size_header : 16
+        show:
+          graph: bar
+      - type: custom:mini-graph-card
+        entities:
+        - sensor.distance
+        line_color: var(--accent-color)
+        line_width: 8
+        hours_to_show: 168
+        font_size: 100
+        font_size_header: 16
+        show:
+          graph: bar
+        points_per_hour: 0.04166
+
+
+
+
+
+
+
+
+
+
+
