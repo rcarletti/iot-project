@@ -9,7 +9,6 @@ import sys
 import pint
 import threading
 
-
 from coapthon.client.helperclient import HelperClient
 from coapthon.utils import parse_uri
 from pint import UnitRegistry
@@ -17,8 +16,8 @@ from pint import UnitRegistry
 from bs4 import BeautifulSoup
 
 import requests
-
 import voluptuous as vol
+import json
 
 from homeassistant.core import callback
 from homeassistant.components.http import HomeAssistantView
@@ -29,8 +28,6 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.icon import icon_for_battery_level
 import homeassistant.helpers.config_validation as cv
 from homeassistant.util.json import load_json, save_json
-
-import json
 
 
 _CONFIGURING = {}
@@ -54,7 +51,7 @@ DEFAULT_MONITORED_RESOURCES = ['activities/steps',
                              'calendar'
                              ]
 
-SCAN_INTERVAL = datetime.timedelta(seconds=1)
+SCAN_INTERVAL = datetime.timedelta(seconds=10)
 
 # [name, unit of measurement, icon, default state]
 CoAPBIT_RESOURCES_LIST = {
@@ -73,7 +70,6 @@ CoAPBIT_MEASUREMENTS = {
     }
 }
 
-
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_NODE_URI, default=DEFAULT_NODE_URI): cv.string,
     vol.Optional(CONF_BR_URI, default=DEFAULT_BR_URI): cv.string,
@@ -82,18 +78,16 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
         vol.All(cv.ensure_list, [vol.In(CoAPBIT_RESOURCES_LIST)])
 })
 
-
-
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
     """Set up the CoAPbit platform."""
     ureg = UnitRegistry()
-    #ureg.load_definitions('/home/rossella/home-assistant/homeassistant/components/CoAPbit/unit_def.txt')
     dev = []
-    resource_addr_list = []
-    retrieve_nodes(DEFAULT_BR_URI, resource_addr_list)
 
-    for addr in resource_addr_list:
+    node_addr_list = []
+    retrieve_nodes(DEFAULT_BR_URI, node_addr_list)
+
+    for addr in node_addr_list:
         if addr == config.get(CONF_NODE_URI):
             calendar_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
             set_datetime(calendar_client,"Calendar")
@@ -101,7 +95,9 @@ async def async_setup_platform(hass, config, async_add_entities,
             for resource in config.get(CONF_MONITORED_RESOURCES):
                 coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
                 dev.append(CoAPbitSensor(coap_client, resource, ureg))
-
+        else:
+            print('Device not found')
+            return False
 
     async_add_entities(dev, True)
     return True
@@ -125,7 +121,6 @@ class CoAPbitSensor(Entity):
 
         self._client.observe(self._name, self.client_callback_observe)
 
-
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -141,7 +136,6 @@ class CoAPbitSensor(Entity):
         """Return the state of the sensor."""
         return self._state
 
-
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
@@ -152,40 +146,42 @@ class CoAPbitSensor(Entity):
         """Return the state attributes."""
         return {}
 
-
     def client_callback_observe(self, response):
-        if response is not None:
-            try:
-                self._msg = json.loads(response.payload)
-                self._last_response = response
-            except:
-                print(response.payload)
-                return
-            try:
-                if self._name is not 'Calendar':
-                    # check the unit of measurement
-                    unit = self._msg["e"]["u"]
-                    if unit == self._unit_of_measurement:
-                        raw_state = self._msg["e"]["v"]
-                    else:
-                        # convert to the desired u.of m.
-                        data = self._msg["e"]["v"] * self._ureg.parse_expression(unit)
-                        raw_state = data.to(self._ureg.parse_expression(self._unit_of_measurement)).magnitude
+        if response is None:
+            return
 
-                    if self._name == 'Distance':
-                        self._state = format(float(raw_state), '.2f')
-                    else:
-                        self._state = format(float(raw_state), '.0f')
+        try:
+            self._msg = json.loads(response.payload)
+            self._last_response = response
+        except:
+            print(response.payload)
+            return
+
+        try:
+            if self._name is not 'Calendar':
+                # check the unit of measurement
+                unit = self._msg["e"]["u"]
+                if unit == self._unit_of_measurement:
+                    raw_state = self._msg["e"]["v"]
                 else:
-                    sec = self._msg["sec"]
-                    mins = self._msg["min"]
-                    hour = self._msg["hour"]
-                    day = self._msg["day"]
-                    month = self._msg["month"]
-                    year = self._msg["year"]
-                    self._state = '{}/{}/{} \n {:02}:{:02}'.format(day, month, year, hour, mins)
-            except KeyError:
-                pass
+                    # convert to the desired u.of m.
+                    data = self._msg["e"]["v"] * self._ureg.parse_expression(unit)
+                    raw_state = data.to(self._ureg.parse_expression(self._unit_of_measurement)).magnitude
+
+                if self._name == 'Distance':
+                    self._state = format(float(raw_state), '.2f')
+                else:
+                    self._state = format(float(raw_state), '.0f')
+            else:
+                mins = self._msg["min"]
+                hour = self._msg["hour"]
+                day = self._msg["day"]
+                month = self._msg["month"]
+                year = self._msg["year"]
+
+                self._state = '{}/{}/{} \n {:02}:{:02}'.format(day, month, year, hour, mins)
+        except KeyError:
+            pass
 
     def update(self):
         if self._name == 'Calendar':
@@ -203,9 +199,6 @@ class CoAPbitSensor(Entity):
                 print('set time')
 
 
-
-
-
 def retrieve_nodes(br_uri, resource_addr_list):
     # http-get to BR router
     r = requests.get(br_uri)
@@ -213,7 +206,6 @@ def retrieve_nodes(br_uri, resource_addr_list):
     #retrieve nodes addresses
     soup = BeautifulSoup(html_doc, 'html.parser')
     addr_list = soup.find_all('pre')[1]
-
 
     for string in addr_list.stripped_strings:
         # split single addresses
@@ -239,9 +231,4 @@ def set_datetime(client, path):
                 "min=" + str(minute) + '&' + \
                 "hour=" + str(hour)
 
-    response = client.post(path, payload)
-
-
-
-
-
+    client.post(path, payload)
