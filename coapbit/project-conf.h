@@ -29,8 +29,8 @@
  *
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+#ifndef PROJECT_COAPBIT_CONF_H_
+#define PROJECT_COAPBIT_CONF_H_
 
 #undef REST_MAX_CHUNK_SIZE
 #define REST_MAX_CHUNK_SIZE    80
@@ -63,4 +63,4 @@
 #undef NETSTACK_CONF_MAC
 #define NETSTACK_CONF_MAC    			nullmac_driver
 
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+#endif /* PROJECT_COAPBIT_CONF_H_ */
