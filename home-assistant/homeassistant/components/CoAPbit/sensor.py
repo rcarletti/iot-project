@@ -43,31 +43,23 @@ CONF_COAP_PORT = 'port'
 DEFAULT_COAP_PORT = 5683
 
 CONF_MONITORED_RESOURCES = 'monitored_resources'
-DEFAULT_MONITORED_RESOURCES = ['activities/steps',
-                             'activities/calories',
-                             'devices/battery',
-                             'activities/heart',
-                             'activities/distance',
-                             'calendar'
-                             ]
+DEFAULT_MONITORED_RESOURCES = ['steps',
+                               'calories',
+                               'battery',
+                               'heart',
+                               'distance',
+                               'calendar']
 
-SCAN_INTERVAL = datetime.timedelta(seconds=10)
+SCAN_INTERVAL = datetime.timedelta(seconds=5)
 
 # [name, unit of measurement, icon, default state]
 CoAPBIT_RESOURCES_LIST = {
-    'activities/steps': ['Steps', 'steps', 'mdi:shoe-print', 0],
-    'activities/calories': ['Calories', 'kcal', 'mdi:fire', 0],
-    'devices/battery': ['Battery', '%', None, '100'],
-    'activities/heart': ['Heart', 'bpm', 'mdi:heart-pulse', 0],
-    'activities/distance': ['Distance', 'km', 'mdi:map-marker', 0],
-    'calendar': ['Calendar' , None, 'mdi:calendar', 'calendar not set'],
-
-}
-
-CoAPBIT_MEASUREMENTS = {
-    'metric': {
-        'distance': 'kilometers',
-    }
+    'steps'   : ['Steps',    'steps', 'mdi:shoe-print',  0],
+    'calories': ['Calories', 'kcal',  'mdi:fire',        0],
+    'battery' : ['Battery',  '%',     None,              '100'],
+    'heart'   : ['Heart',    'bpm',   'mdi:heart-pulse', 0],
+    'distance': ['Distance', 'km',    'mdi:map-marker',  0],
+    'calendar': ['Calendar' , None,   'mdi:calendar',    'calendar not set'],
 }
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -89,6 +81,7 @@ async def async_setup_platform(hass, config, async_add_entities,
 
     for addr in node_addr_list:
         if addr == config.get(CONF_NODE_URI):
+            # set coapbit's calendar
             calendar_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
             set_datetime(calendar_client,"Calendar")
             #for each client create one entity for each sensor
@@ -193,10 +186,9 @@ class CoAPbitSensor(Entity):
                         minutes = self._prev_time.minute, \
                         seconds = self._prev_time.second)
             delta = now_delta - prev_delta
-            if(delta > datetime.timedelta(minutes = 1)):
+            if(delta > datetime.timedelta(minutes = 5)):
                 self._prev_time = now
                 set_datetime(self._client, self._resource_type)
-                print('set time')
 
 
 def retrieve_nodes(br_uri, resource_addr_list):
