@@ -18,12 +18,6 @@
 #define PRINTLLADDR(addr)
 #endif
 
-static int stepNum = 0;
-extern int stepValues[30];
-
-
-static unsigned battery_level = 100;
-
 /* owner's data */
 static unsigned long weight = 60;            //[kg]
 static unsigned long stepLength = 30;         //[cm]
@@ -31,6 +25,8 @@ static unsigned long stepLength = 30;         //[cm]
 static unsigned long cal = 0;               //[calories]
 static unsigned heartRate = 60;     //[bpm]
 static unsigned long distance = 0;            //[m]
+static unsigned stepNum = 0;
+static unsigned battery_level = 100;    //[%]
 
 struct calendar {
   unsigned sec;
@@ -98,59 +94,59 @@ void calendar_post_handler(void* request,
 
 
 PERIODIC_RESOURCE(steps_periodic,
-                  "title=\"Steps\";rt=\"Text\";obs",
+                  "title=\"Steps\";rt=\"M\";obs",
                   step_get_handler,
                   NULL,
                   NULL,
                   NULL,
-                  CLOCK_SECOND,
+                  5 * CLOCK_SECOND,
                   steps_per_handler);
 
 
 PERIODIC_RESOURCE(calories_periodic,
-                  "title=\"Calories\";rt=\"Text\";obs",
+                  "title=\"Calories\";rt=\"M\";obs",
                   calories_get_handler,
                   NULL,
                   NULL,
                   NULL,
-                  2 * CLOCK_SECOND,
+                  30 * CLOCK_SECOND,
                   calories_per_handler);
 
 PERIODIC_RESOURCE(battery_periodic,
-                  "title=\"Battery\";rt=\"Text\";obs",
+                  "title=\"Battery\";rt=\"D\";obs",
                   battery_get_handler,
                   NULL,
                   NULL,
                   NULL,
-                  20 * CLOCK_SECOND,
+                  60 * CLOCK_SECOND,
                   battery_per_handler);
 
 
 PERIODIC_RESOURCE(heart_periodic,
-                  "title=\"Heart\";rt=\"Text\";obs",
+                  "title=\"Heart\";rt=\"M\";obs",
                   heart_get_handler,
                   NULL,
                   NULL,
                   NULL,
-                  1 * CLOCK_SECOND,
+                  10 * CLOCK_SECOND,
                   heart_per_handler);
 
 PERIODIC_RESOURCE(distance_periodic,
-                  "title=\"Distance\";rt=\"Text\";obs",
+                  "title=\"Distance\";rt=\"M\";obs",
                   distance_get_handler,
                   NULL,
                   NULL,
                   NULL,
-                  1 * CLOCK_SECOND,
+                  20 * CLOCK_SECOND,
                   distance_per_handler);
 
 PERIODIC_RESOURCE(calendar_periodic,
-                  "title=\"calendar\";rt=\"Text\";obs",
+                  "title=\"Calendar\";rt=\"D\";obs",
                   calendar_get_handler,
                   calendar_post_handler,
                   NULL,
                   NULL,
-                  CLOCK_SECOND,
+                  10 * CLOCK_SECOND,
                   calendar_per_handler);
 
 /*--------------------------------standard get handler-------------------------------------------*/
@@ -161,17 +157,15 @@ void step_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,
-                  "{\"e\":{\"n\":\"steps\",\"v\": %d , \"u\":\"steps\"}}",
-                  stepNum);
+  length = snprintf(buffer,
+                    REST_MAX_CHUNK_SIZE,
+                    "{\"e\":{\"n\":\"steps\",\"v\": %u , \"u\":\"steps\"}}\n",
+                    stepNum);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -182,17 +176,15 @@ void calories_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,
-                  "{\"e\":{\"n\":\"calories\",\"v\": %lu , \"u\":\"cal\"}}",
-                  cal);
+  length = snprintf(buffer,
+                    REST_MAX_CHUNK_SIZE,
+                    "{\"e\":{\"n\":\"calories\",\"v\": %lu , \"u\":\"cal\"}}\n",
+                    cal);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -202,17 +194,15 @@ void battery_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,
-                  "{\"e\":{\"n\":\"battery\",\"v\": %u , \"u\":\"%%\"}}",
+  length = snprintf(buffer,
+                    REST_MAX_CHUNK_SIZE,
+                  "{\"e\":{\"n\":\"battery\",\"v\":%u,\"u\":\"%%\"}}\n",
                    battery_level);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -222,17 +212,15 @@ void heart_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,
-                  "{\"e\":{\"n\":\"hr\",\"v\": %u , \"u\":\"bpm\"}}",
+  length = snprintf(buffer,
+                    REST_MAX_CHUNK_SIZE,
+                  "{\"e\":{\"n\":\"hr\",\"v\": %u , \"u\":\"bpm\"}}\n",
                   heartRate);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -242,17 +230,15 @@ void distance_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,
-                  "{\"e\":{\"n\":\"distance\",\"v\": %lu , \"u\":\"cm\"}}",
+  length = snprintf(buffer,
+                    REST_MAX_CHUNK_SIZE,
+                  "{\"e\":{\"n\":\"distance\",\"v\": %lu , \"u\":\"cm\"}}\n",
                   distance);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -262,15 +248,15 @@ void calendar_get_handler(void* request,
                       uint16_t preferred_size,
                       int32_t *offset)
 {
-  char message[200];
   int length;
 
-  length = sprintf(message,"{\"sec\": %u,"
+  length = snprintf(buffer, REST_MAX_CHUNK_SIZE,
+                            "{\"sec\": %u,"
                             "\"min\": %u,"
                             "\"hour\": %u,"
                             "\"day\": %u,"
                             "\"month\": %u,"
-                            "\"year\": %u}",
+                            "\"year\": %u}\n",
                              now.sec,
                              now.min,
                              now.hour,
@@ -278,10 +264,8 @@ void calendar_get_handler(void* request,
                              now.month,
                              now.year);
 
-  memcpy(buffer, message, length);
-
-  REST.set_header_content_type(response, REST.type.TEXT_PLAIN);
-  REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
+  //REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -379,6 +363,12 @@ static void calendar_per_handler()
 }
 
 
+static void reset_resources() {
+  stepNum = 0;
+  cal = 0;
+  distance = 0;
+}
+
 static void increase_time() {
   now.sec++;
   if (now.sec == 60) {
@@ -394,8 +384,9 @@ static void increase_time() {
     now.min = 0;
     now.sec = 0;
     now.day++;
+    reset_resources();
   }
-  if (now.day == 365) {
+  if (now.day == 31 && now.month == 12) {
     now.hour = 0;
     now.min = 0;
     now.sec = 0;
@@ -403,6 +394,7 @@ static void increase_time() {
     now.year++;
   }
 }
+
 
 /*---------------------------------------------------------------------------*/
 PROCESS(server, "Server process");
@@ -412,6 +404,7 @@ AUTOSTART_PROCESSES(&server);
 PROCESS_THREAD(server, ev, data)
 {
   PROCESS_BEGIN();
+
   static struct etimer et;
   etimer_set(&et, CLOCK_SECOND);
 
@@ -424,7 +417,6 @@ PROCESS_THREAD(server, ev, data)
   rest_activate_resource(&heart_periodic, "Heart");
   rest_activate_resource(&distance_periodic, "Distance");
   rest_activate_resource(&calendar_periodic, "Calendar");
-
 
   while(1) {
     PROCESS_WAIT_EVENT();
