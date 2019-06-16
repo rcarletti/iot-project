@@ -32,13 +32,15 @@
 #ifndef PROJECT_ERBIUM_CONF_H_
 #define PROJECT_ERBIUM_CONF_H_
 
+#undef TCPIP_CONF_ANNOTATE_TRANSMISSIONS
+#define TCPIP_CONF_ANNOTATE_TRANSMISSIONS 0
+
 #undef REST_MAX_CHUNK_SIZE
 #define REST_MAX_CHUNK_SIZE    80
 
 /* Save some memory for the sky platform. */
 #undef NBR_TABLE_CONF_MAX_NEIGHBORS
 #define NBR_TABLE_CONF_MAX_NEIGHBORS     10
-
 
 /* Multiplies with chunk size, be aware of memory constraints. */
 #ifndef COAP_MAX_OPEN_TRANSACTIONS
