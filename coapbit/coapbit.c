@@ -165,7 +165,7 @@ void step_get_handler(void* request,
                     stepNum);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -184,7 +184,7 @@ void calories_get_handler(void* request,
                     cal);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -202,7 +202,7 @@ void battery_get_handler(void* request,
                    batteryLevel);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -220,7 +220,7 @@ void heart_get_handler(void* request,
                   heartRate);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -238,7 +238,7 @@ void distance_get_handler(void* request,
                   distance);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
@@ -265,7 +265,7 @@ void calendar_get_handler(void* request,
                              now.year);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
-  //REST.set_header_etag(response, (uint8_t *) &length, 1);
+  REST.set_header_etag(response, (uint8_t *) &length, 1);
   REST.set_response_payload(response, buffer, length);
 }
 
