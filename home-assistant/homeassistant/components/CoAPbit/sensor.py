@@ -77,7 +77,12 @@ async def async_setup_platform(hass, config, async_add_entities,
     dev = []
 
     node_addr_list = []
-    retrieve_nodes(DEFAULT_BR_URI, node_addr_list)
+
+    try:
+        retrieve_nodes(DEFAULT_BR_URI, node_addr_list)
+    except:
+        _LOGGER.error('Could not contact border router')
+        return False
 
     for addr in node_addr_list:
         if addr == config.get(CONF_NODE_URI):
@@ -89,7 +94,7 @@ async def async_setup_platform(hass, config, async_add_entities,
                 coap_client = HelperClient(server=(addr, config.get(CONF_COAP_PORT)))
                 dev.append(CoAPbitSensor(coap_client, resource, ureg))
         else:
-            print('Device not found')
+            _LOGGER.error('Device not found at address: ' + config.get(CONF_NODE_URI))
             return False
 
     async_add_entities(dev, True)
@@ -224,3 +229,4 @@ def set_datetime(client, path):
                 "hour=" + str(hour)
 
     client.post(path, payload)
+

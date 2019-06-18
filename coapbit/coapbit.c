@@ -7,7 +7,7 @@
 
 #include "rest-engine.h"
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -26,7 +26,7 @@ static unsigned long cal = 0;               //[calories]
 static unsigned heartRate = 60;     //[bpm]
 static unsigned long distance = 0;            //[m]
 static unsigned stepNum = 0;
-static unsigned battery_level = 100;    //[%]
+static unsigned batteryLevel = 100;    //[%]
 
 struct calendar {
   unsigned sec;
@@ -99,7 +99,7 @@ PERIODIC_RESOURCE(steps_periodic,
                   NULL,
                   NULL,
                   NULL,
-                  5 * CLOCK_SECOND,
+                  1 * CLOCK_SECOND,
                   steps_per_handler);
 
 
@@ -146,7 +146,7 @@ PERIODIC_RESOURCE(calendar_periodic,
                   calendar_post_handler,
                   NULL,
                   NULL,
-                  10 * CLOCK_SECOND,
+                  1 * CLOCK_SECOND,
                   calendar_per_handler);
 
 /*--------------------------------standard get handler-------------------------------------------*/
@@ -159,7 +159,7 @@ void step_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer,
+  length = snprintf((char*)buffer,
                     REST_MAX_CHUNK_SIZE,
                     "{\"e\":{\"n\":\"steps\",\"v\": %u , \"u\":\"steps\"}}\n",
                     stepNum);
@@ -178,7 +178,7 @@ void calories_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer,
+  length = snprintf((char*)buffer,
                     REST_MAX_CHUNK_SIZE,
                     "{\"e\":{\"n\":\"calories\",\"v\": %lu , \"u\":\"cal\"}}\n",
                     cal);
@@ -196,10 +196,10 @@ void battery_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer,
+  length = snprintf((char*)buffer,
                     REST_MAX_CHUNK_SIZE,
                   "{\"e\":{\"n\":\"battery\",\"v\":%u,\"u\":\"%%\"}}\n",
-                   battery_level);
+                   batteryLevel);
 
   REST.set_header_content_type(response, REST.type.APPLICATION_JSON);
   //REST.set_header_etag(response, (uint8_t *) &length, 1);
@@ -214,7 +214,7 @@ void heart_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer,
+  length = snprintf((char*)buffer,
                     REST_MAX_CHUNK_SIZE,
                   "{\"e\":{\"n\":\"hr\",\"v\": %u , \"u\":\"bpm\"}}\n",
                   heartRate);
@@ -232,7 +232,7 @@ void distance_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer,
+  length = snprintf((char*)buffer,
                     REST_MAX_CHUNK_SIZE,
                   "{\"e\":{\"n\":\"distance\",\"v\": %lu , \"u\":\"cm\"}}\n",
                   distance);
@@ -250,7 +250,7 @@ void calendar_get_handler(void* request,
 {
   int length;
 
-  length = snprintf(buffer, REST_MAX_CHUNK_SIZE,
+  length = snprintf((char*)buffer, REST_MAX_CHUNK_SIZE,
                             "{\"sec\": %u,"
                             "\"min\": %u,"
                             "\"hour\": %u,"
@@ -338,9 +338,9 @@ static void calories_per_handler()
 
 static void battery_per_handler()
 {
-  battery_level -= 1;
-  if (battery_level == 0)
-    battery_level = 100;
+  batteryLevel -= 1;
+  if (batteryLevel == 0)
+    batteryLevel = 100;
 
   REST.notify_subscribers(&battery_periodic);
 }
@@ -427,3 +427,4 @@ PROCESS_THREAD(server, ev, data)
   }
   PROCESS_END();
 }
+

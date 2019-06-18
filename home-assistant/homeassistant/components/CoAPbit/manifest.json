@@ -5,7 +5,8 @@
   "requirements": [
     "CoAPthon3",
     "beautifulsoup4",
-    "requests"
+    "requests",
+    "pint"
   ],
   "dependencies": [
     "configurator",
