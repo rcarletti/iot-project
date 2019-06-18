@@ -62,7 +62,4 @@
 #undef UIP_CONF_BUFFER_SIZE
 #define UIP_CONF_BUFFER_SIZE    380
 
-#undef NETSTACK_CONF_MAC
-#define NETSTACK_CONF_MAC    			nullmac_driver
-
 #endif /* PROJECT_COAPBIT_CONF_H_ */
