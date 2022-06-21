@@ -173,7 +173,7 @@ mficlient==0.3.0
 # homeassistant.components.pollen
 # homeassistant.components.tensorflow
 # homeassistant.components.trend
-numpy==1.16.2
+numpy==1.22.0
 
 # homeassistant.components.google
 oauth2client==4.0.0
